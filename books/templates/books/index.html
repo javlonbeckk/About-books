@@ -6,7 +6,7 @@
     {% for p in posts %}
         <li>
             <div class="article-panel">
-                <p class="first">Category {{ p.cat }}</p>
+                <p class="first">Category: {{ p.cat }}</p>
                 <p class="last">Date: {{ p.time_update|date:"d-m-Y H:m:s" }}</p>
             </div>
         
