@@ -2,12 +2,12 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse_lazy
 from django.contrib.auth import logout
-from django.views.generic import ListView, DeleteView, CreateView
+from django.views.generic import ListView, DeleteView, CreateView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 
 #local imports
-from .forms import AddPostForm, RegisterUserForm, LoginUserForm
+from .forms import AddPostForm, RegisterUserForm, LoginUserForm, ContactForm
 from .models import Books, Category
 from .utils import DataMixin, menu
 
@@ -23,7 +23,7 @@ class BooksHome(DataMixin, ListView):
         return dict(list(context.items()) + list(c_def.items())) 
 
     def get_queryset(self):
-        return Books.objects.filter(is_published=True)
+        return Books.objects.filter(is_published=True).select_related('cat')
 
 # def index(request):
 #     posts = Books.objects.all()
@@ -64,8 +64,22 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
 
 #     return render(request, 'books/addpage.html', {'form': form, 'menu': menu, 'title': 'Добавление статьи'})
 
-def contact(request):
-    return HttpResponse('Contact')
+# def contact(request):
+#     return HttpResponse('Contact')
+
+class ContactFormView(DataMixin, FormView):
+    form_class = ContactForm
+    template_name = 'books/contact.html'
+    success_url = reverse_lazy('home')
+    
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title="Contact")
+        return dict(list(context.items())+list(c_def.items()))
+    
+    def form_valid(self, form):
+        print(form.cleaned_data)
+        return redirect('home')
 
 def login(request):
     return HttpResponse('Login')
@@ -105,13 +119,14 @@ class BooksCategory(DataMixin, ListView):
     allow_empty = False #agar boshqa slug kiritilgan bosa index error mas 404 chiqaradi
 
     def get_queryset(self):
-        return Books.objects.filter(cat__slug=self.kwargs['cat_slug'], is_published=True)
+        return Books.objects.filter(cat__slug=self.kwargs['cat_slug'], is_published=True).select_related('cat')
     
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
+        c = Category.objects.get(slug=self.kwargs['cat_slug'])
         c_def = self.get_user_context(
-            title = str(context['posts'][0].cat),
-            cat_selected = context['posts'][0].cat_id
+            title = str(c.name),
+            cat_selected = c.pk
         )
         return dict(list(context.items()) + list(c_def.items())) 
 # def show_category(request, cat_slug):
